@@ -106,12 +106,12 @@ echo ""
 echo "--- Stop event pending background work ---"
 STOP_INPUT='{"session_id":"s1","cwd":"/tmp/proj","background_tasks":[{"id":"t1","type":"shell","status":"running"},{"id":"t2","type":"subagent","status":"running"}],"session_crons":[{"id":"c1","schedule":"* * * * *"}]}'
 PAYLOAD=$(build_payload "$STOP_INPUT" "stop" \
-    --argjson background_task_count "$(echo "$STOP_INPUT" | jq -r '.background_tasks // [] | length')" \
+    --argjson background_task_count "$(echo "$STOP_INPUT" | jq -r '[.background_tasks // [] | .[] | select(.type != "shell")] | length')" \
     --argjson session_cron_count "$(echo "$STOP_INPUT" | jq -r '.session_crons // [] | length')")
 assert_json_field "background_task_count is numeric" "$PAYLOAD" ".background_task_count | type" "number"
-assert_json_field "background_task_count merged" "$PAYLOAD" ".background_task_count" "2"
+assert_json_field "background_task_count excludes shell" "$PAYLOAD" ".background_task_count" "1"
 assert_json_field "session_cron_count merged" "$PAYLOAD" ".session_cron_count" "1"
-assert_eq "missing arrays count as 0" "0" "$(echo '{"session_id":"s1"}' | jq -r '.background_tasks // [] | length')"
+assert_eq "missing arrays count as 0" "0" "$(echo '{"session_id":"s1"}' | jq -r '[.background_tasks // [] | .[] | select(.type != "shell")] | length')"
 
 echo ""
 echo "--- Permission request event ---"

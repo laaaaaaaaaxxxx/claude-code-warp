@@ -66,9 +66,10 @@ if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
 fi
 
 # Claude Code wakes the agent again when a background task finishes or a session cron fires,
-# so a Stop with either pending is a pause rather than the end of the session. Default to 0
-# so --argjson always receives a number and the notification is never dropped.
-BACKGROUND_TASK_COUNT=$(echo "$INPUT" | jq -r '.background_tasks // [] | length' 2>/dev/null)
+# so a Stop with either pending is a pause rather than the end of the session. Background
+# shells (Bash run_in_background, Monitor) are not counted: the agent is idle while they run.
+# Default to 0 so --argjson always receives a number and the notification is never dropped.
+BACKGROUND_TASK_COUNT=$(echo "$INPUT" | jq -r '[.background_tasks // [] | .[] | select(.type != "shell")] | length' 2>/dev/null)
 SESSION_CRON_COUNT=$(echo "$INPUT" | jq -r '.session_crons // [] | length' 2>/dev/null)
 
 BODY=$(build_payload "$INPUT" "stop" \
